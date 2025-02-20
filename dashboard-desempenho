@@ -5,7 +5,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # Configuração do acesso ao Google Sheets
-SHEET_URL = "URL_DO_SEU_GOOGLE_SHEET"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1UiZQPDbZR9Df3fphHLCBv8crcuqsCXRqMTUD4xX8UC0/edit?gid=0#gid=0"
 
 # Função para carregar os dados do Google Sheets
 def carregar_dados():
