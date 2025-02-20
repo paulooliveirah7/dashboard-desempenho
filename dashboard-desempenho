@@ -1,0 +1,66 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Configuração do acesso ao Google Sheets
+SHEET_URL = "URL_DO_SEU_GOOGLE_SHEET"
+
+# Função para carregar os dados do Google Sheets
+def carregar_dados():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_url(SHEET_URL).sheet1
+    data = sheet.get_all_records()
+    return pd.DataFrame(data)
+
+# Carregar os dados
+df = carregar_dados()
+
+# Converter colunas para o tipo correto
+df['Acertos'] = df['Acertos'].astype(int)
+df['Erros'] = df['Erros'].astype(int)
+df['Tempo (min)'] = df['Tempo (min)'].astype(int)
+
+# Criar métricas principais
+total_acertos = df['Acertos'].sum()
+total_erros = df['Erros'].sum()
+total_tempo = df['Tempo (min)'].sum()
+percentual_acertos = (total_acertos / (total_acertos + total_erros)) * 100
+percentual_erros = 100 - percentual_acertos
+
+# Criar gráfico de linha para desempenho ao longo do tempo
+fig_linha = px.line(df, x='Data', y='Acertos', title='Evolução dos Acertos')
+
+# Criar gráfico de pizza para distribuição de erros e acertos
+fig_pizza = px.pie(names=['Acertos', 'Erros'], values=[total_acertos, total_erros], title='Distribuição de Acertos e Erros')
+
+# Criar gráfico de barras para acertos por matéria
+fig_barras = px.bar(df, x='Matéria', y='Acertos', title='Acertos por Matéria')
+
+# Layout do Streamlit
+st.title("Dashboard de Estudos")
+
+st.metric("Total de Acertos", total_acertos)
+st.metric("Total de Erros", total_erros)
+st.metric("Tempo Total Estudado (min)", total_tempo)
+st.metric("Percentual de Acertos", f"{percentual_acertos:.2f}%")
+
+st.plotly_chart(fig_linha)
+st.plotly_chart(fig_pizza)
+st.plotly_chart(fig_barras)
+
+# Adicionar formulário para inserir novos dados
+st.subheader("Adicionar Novo Registro")
+data = st.date_input("Data")
+matéria = st.text_input("Matéria")
+acertos = st.number_input("Acertos", min_value=0, step=1)
+erros = st.number_input("Erros", min_value=0, step=1)
+tempo = st.number_input("Tempo (min)", min_value=0, step=1)
+
+if st.button("Adicionar"):
+    novo_dado = [data.strftime('%Y-%m-%d'), matéria, acertos, erros, tempo]
+    sheet.append_row(novo_dado)
+    st.success("Registro adicionado com sucesso!")
